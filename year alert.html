@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Year Calendar 2026</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f9;
+  margin: 0;
+  padding: 10px;
+  transition: background 0.3s, color 0.3s;
+}
+body.dark {
+  background: #121212;
+  color: #fff;
+}
+
+h1 {
+  text-align: center;
+  animation: animeTitle 2s ease forwards;
+  opacity: 0;
+  text-shadow: 0 0 12px rgba(0,123,255,0.7);
+}
+@keyframes animeTitle {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); text-shadow: 0 0 15px rgba(0,123,255,0.8);}
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+button,label {
+  background: #007BFF;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover,label:hover { background: #0056b3; }
+
+#helpBox {
+  max-width: 700px;
+  margin: 10px auto;
+  background: white;
+  color: black;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.monthBox {
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.month-heading {
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px #000;
+  margin-bottom: 5px;
+  
+}
+
+textarea {
+  width: 100%;
+  height: 200px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  color: rgb(0, 0, 0);
+  resize: vertical;
+}
+
+.goals textarea {
+  height: 120px;
+  background: #ffeaa7;
+  color: black;
+}
+
+.goals {
+  position: relative;
+}
+
+.timer-goals {
+  
+  top: 0;
+  right: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .calendar-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .calendar-grid { grid-template-columns: 1fr; }
+}
+
+/* Gradient pool */
+.g1{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+.g2{background:linear-gradient(135deg,#f093fb,#f5576c);}
+.g3{background:linear-gradient(135deg,#43e97b,#38f9d7);}
+.g4{background:linear-gradient(135deg,#fa709a,#fee140);}
+.g5{background:linear-gradient(135deg,#30cfd0,#330867);}
+.g6{background:linear-gradient(135deg,#f83600,#f9d423);}
+.g7{background:linear-gradient(135deg,#5ee7df,#b490ca);}
+.g8{background:linear-gradient(135deg,#76b852,#8DC26F);}
+.g9{background:linear-gradient(135deg,#3a1c71,#d76d77,#ffaf7b);}
+.g10{background:linear-gradient(135deg,#83a4d4,#b6fbff);}
+</style>
+
+<script>
+let dirty = false;
+let userName = "";
+const gradients = ["g1","g2","g3","g4","g5","g6","g7","g8","g9","g10"];
+
+// On load
+//window.onload = () => {
+  //randomizeMonths();
+ // showStartupMessage();
+//};
+
+// Random gradient assignment
+function randomizeMonths(){
+  const boxes = document.querySelectorAll(".monthBox");
+  boxes.forEach(box => {
+    const rand = gradients[Math.floor(Math.random()*gradients.length)];
+    box.className = "monthBox " + rand;
+  });
+}
+
+// Startup help
+function showStartupMessage(){
+  alert("If you have an existing file, click 📂 Open to load it. Otherwise, enter your name.");
+  askNameIfNeeded();
+}
+
+// Ask name if missing
+function askNameIfNeeded(){
+    userName = document.getElementById("nameInput").value.trim();
+    updateTitle();
+  if(!userName){
+   // userName = prompt("Enter your name:");
+    if(!userName) userName = "My";
+    
+  }
+}
+
+// Update heading
+function updateTitle(){
+  document.getElementById("title").innerText = `📅 ${userName}'s Year Calendar 2026`;
+}
+
+// Toggle Help
+function toggleHelp(){
+  const h = document.getElementById("helpBox");
+  h.style.display = h.style.display === "block" ? "none" : "block";
+}
+
+// Toggle dark mode
+function toggleDark(){
+  document.body.classList.toggle("dark");
+}
+
+// Save file
+function saveFile(){
+  const data = { name: userName };
+  document.querySelectorAll("textarea").forEach(t => data[t.id] = t.value);
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "yearData.txt";
+  a.click();
+  dirty = false;
+}
+
+// Load file
+function loadFile(e){
+  const r = new FileReader();
+  r.onload = () => {
+    const d = JSON.parse(r.result);
+    if(d.name)
+    { userName = d.name; 
+    document.getElementById("nameInput").value = userName;
+    }
+
+    updateTitle();
+    for(let k in d) if(document.getElementById(k)) document.getElementById(k).value = d[k];
+  };
+  r.readAsText(e.target.files[0]);
+}
+
+// Warn before closing
+window.onbeforeunload = () => dirty ? "Please save before closing." : null;
+
+// Mark dirty on input
+document.addEventListener("input", () => dirty = true);
+
+
+function getDateTime() {
+  return new Date().toLocaleString();
+}
+
+window.onload = () => {
+  randomizeMonths();
+ const goalTimer = document.querySelector(".timer-goals");
+const goalTextarea = document.getElementById("goals");
+
+if (goalTimer && goalTextarea) {
+  // Update tooltip with live datetime
+  setInterval(() => {
+    goalTimer.title = new Date().toLocaleString();
+  }, 1000);
+
+  // Click to insert datetime
+  goalTimer.addEventListener("click", () => {
+    goalTextarea.value += new Date().toLocaleString() + "\n";
+    dirty = true;
+  });
+}
+
+  document.querySelectorAll(".monthBox").forEach(box => {
+    const timer = box.querySelector(".timer");
+    const textarea = box.querySelector("textarea");
+
+    if (!timer || !textarea) return;
+
+    // update tooltip every second
+    setInterval(() => {
+      timer.title = getDateTime();
+    }, 1000);
+
+    // click ⏱ → insert datetime
+    timer.addEventListener("click", () => {
+      textarea.value += getDateTime() + "\n";
+      dirty = true;
+    });
+  });
+};
+</script>
+
+</head>
+<body>
+
+<h1 id="title"></h1>
+
+<div class="controls">
+  <button onclick="saveFile()">💾 Save</button>
+  <label>📂 Open<input type="file" hidden onchange="loadFile(event)"></label>
+  <button onclick="toggleDark()">🌙 Dark</button>
+  <button onclick="toggleHelp()">❓ Help</button>
+
+</div>
+
+<div id="helpBox">
+<h3>📘 How to Use</h3>
+<ol>
+<li>Click 📂 Open to load an existing file</li>
+<li>If no file, enter your name</li>
+<li>Write goals & monthly notes</li>
+<li>Click ⏱ in any month to insert current date/time</li>
+<li>Click 💾 Save before closing</li>
+</ol>
+</div>
+
+<div class="goals">
+<div class="timer-goals"><h3>🎯 Year Goals <input type="text" size=30 id="nameInput" placeholder="Enter your name Or Open existing File" onchange="askNameIfNeeded()"> ⏰</h3></div> 
+<textarea id="goals"></textarea>
+</div>
+
+<div class="calendar-grid">
+  <div class="monthBox"><div class="month-heading" > <div class="timer">January  ⏰</div></div><textarea id="jan"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">February  ⏰</div></div><textarea id="feb"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">March  ⏰</div></div><textarea id="mar"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">April  ⏰</div></div><textarea id="apr"></textarea></div>
+
+  <div class="monthBox"> <div class="month-heading"><div class="timer">May  ⏰</div></div><textarea id="may"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">June  ⏰</div></div><textarea id="jun"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">July  ⏰</div></div><textarea id="jul"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">August  ⏰</div></div><textarea id="aug"></textarea></div>
+
+  <div class="monthBox"> <div class="month-heading"><div class="timer">September  ⏰</div></div><textarea id="sep"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">October  ⏰</div></div><textarea id="oct"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">November  ⏰</div></div><textarea id="nov"></textarea></div>
+  <div class="monthBox"> <div class="month-heading"><div class="timer">December  ⏰</div></div><textarea id="dec"></textarea></div>
+</div>
+
+</body>
+</html>
