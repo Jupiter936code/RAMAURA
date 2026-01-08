@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Tracker</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin:0;
+  display:flex;
+  color:#fff;
+  height:100vh;
+  background:rgb(84, 84, 179);
+}
+
+/* Left panel */
+#presetPanel {
+  width:220px;
+  background:rgb(250, 250, 28);
+  border-right:1px solid #ccc;
+  color:#000;
+  overflow-y:auto;
+  padding:5px;
+}
+
+#presetPanel h3 {
+  text-align:center;
+  font-size:16px;
+  margin:5px 0;
+}
+
+#presetTable {
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+
+#presetTable th, #presetTable td {
+  border:1px solid #000;
+  padding:3px;
+  text-align:center;
+  font-size:16px;
+  user-select:text;
+}
+
+#presetTable th { background:#007bff; color:white; font-size:12px; }
+
+#presetTable td input[type="checkbox"] {
+  transform:scale(0.8);
+  cursor:pointer;
+}
+
+/* Main content */
+#mainContent {
+  flex:1;
+  padding:10px 20px;
+  overflow-y:auto;
+}
+
+input[type="text"], textarea {
+  width:100%;
+  padding:8px;
+  font-size:16px;
+  margin-bottom:10px;
+  box-sizing:border-box;
+}
+
+button {
+  padding:8px 15px;
+  font-size:14px;
+  border:none;
+  border-radius:6px;
+  background:#007bff;
+  color:white;
+  cursor:pointer;
+  margin-top:5px;
+}
+
+button:hover { background:#0056b3; }
+
+table#reportTable {
+  width:100%;
+  margin-top:20px;
+  border-collapse:collapse;
+  font-size:14px;
+}
+
+table#reportTable th, table#reportTable td {
+  border:1px solid #ccc;
+  padding:6px;
+  text-align:center;
+}
+
+table#reportTable th { background:#007bff; color:white; }
+.actions button { padding:4px 8px; font-size:12px; margin:2px; }
+</style>
+</head>
+<body>
+
+<!-- Left panel -->
+<div id="presetPanel">
+  <h3>Presets</h3>
+  <label><input type="checkbox" id="masterEnable" onchange="toggleAllPresets(this)"> Enable All</label>
+  <table id="presetTable">
+    <thead>
+      <tr>
+        <th>Icon</th>
+        <th>Name</th>
+        <th>Done?</th>
+      </tr>
+    </thead>
+    <tbody id="presetBody"></tbody>
+  </table>
+</div>
+
+<!-- Main tracker -->
+<div id="mainContent">
+<h2 id="todayDate"></h2>
+
+<label>Task Name</label>
+<input type="text" id="task" placeholder="Selected icon + task name">
+
+<label>Comment</label>
+<textarea id="comment"></textarea>
+
+<div style="display:flex; gap:10px; flex-wrap: wrap; margin-bottom:10px;">
+  <div>
+    <button onclick="startWork()">Start</button>
+    <p id="startTime"></p>
+  </div>
+  <div>
+    <button onclick="doneWork()">Done</button>
+    <p id="endTime"></p>
+    <p id="totalTime"></p>
+  </div>
+</div>
+
+<button onclick="saveToTxt()">Save to .txt</button>
+<label>Load .txt File</label>
+<input type="file" accept=".txt" onchange="loadTxt(this)">
+<button onclick="showReport()">Report</button>
+
+<table id="reportTable" style="display:none">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Start</th>
+      <th>Task</th>
+      <th>End</th>
+      <th>Total</th>
+      <th>Comment</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<script>
+document.getElementById("todayDate").innerText = "Today: " + new Date().toDateString();
+
+let startTime, endTime;
+let records = [];
+
+// Example presets
+let presets = [
+    {name:"Wake Up", icon:"⏰"},
+    {name:"Medication", icon:"💊"},
+    {name:"Water Glass", icon:"🥛"},
+    {name: "dish unloading", icon:"🍽️"},
+
+    {icon: "🪥", name: "Morning Brush Teeth"},
+    {name:"oil pulling", icon:"🦷"},
+    {name: "Home Cleaning", icon: "🧹" },
+    {name: "oil intake", icon:"🛢️"},
+    {name:"salt water gargle", icon:"🦷"},
+    
+    {name:"throat massaging", icon:"💆‍♂️"},
+    {name:"Bath", icon:"🚿"},
+ 
+    {name:"Devotion", icon:"🙏"},
+    {name:"Meditation", icon:"🧘‍♂️"},
+  {name:"Yoga", icon:"🧘‍♀️"},
+    {name:"Exercise", icon:"🏃‍♂️🤸‍♂️"},
+   
+
+    {name:"emptystomach garlic water", icon:"🧄"},
+    {name:"lemon water", icon:"🍋"},
+    {name: "fenugreek water", icon: "🌿"}  ,
+     {name:"Warm drink", icon:"☕"},
+
+ {name:"Meeting", icon:"📅"},
+  {name:"Call", icon:"📞"},
+
+  {name:"Breakfast prep", icon:"🍳"},
+ {name:"Breakfast eating", icon:"🥣"},
+{name:"Lunch prep", icon:"🍳"},
+  {name:"Lunch Eating", icon:"🥗/🍱"},
+  {name:"dinner prep", icon:"🍳"},
+  {name:"Dinner Eating", icon:"🍲"},
+ 
+
+ 
+
+  
+  {name:"Laptop", icon:"💻"},
+  {name:"Phone", icon:"📱"},
+  
+  {name:"Grocery Shopping", icon:"🛒"},
+  {name:"Resturant", icon:"👩‍🍳"},
+  
+  {name:"Music", icon:"🎵"},
+  
+  {name:"Pay Bills", icon:"💵"},
+  {name:"Cleaning Kitchen", icon:"🧽"},
+  {name:"Cleaning Bathroom", icon:"🧼"},
+ 
+  {name:"Fruit", icon:"🍎"},
+  {name:"Vegetables", icon:"🥦"},
+  {name:"Snack Nuts", icon:"🥜"},
+   {name:"Snack", icon:"🍿"},
+
+  {name:"Trash Out", icon:"🗑️"},
+ {name:"dish loading", icon:"🍽️"},
+  {name:"Shower", icon:"🛁"},
+  
+  {name : "Laundry", icon: " 🧺"},
+  {name: "clothes organizing", icon: "    👕"},
+{name: "clothes folding", icon: "     👖"},
+
+
+  {name:"Meditation Evening", icon:"🧘‍♀️"},
+
+  {name:"Sleep Early", icon:"🌙"},
+  {name:"Shopping Online", icon:"🛍️"},
+
+  /**
+   * ,
+  {name:"Shopping Grocery", icon:"🛒"},
+   {name:"Nap", icon:"😴"},
+  {name:"Sleep Night", icon:"🛌"},
+  {name:"Meal Prep", icon:"🍳"},
+ {name:"Wake Up", icon:"⏰"},
+  {name:"Morning Walk", icon:"🚶‍♂️"},
+  {name:"Evening Walk", icon:"🚶‍♀️"},
+  {name:"Breakfast Fruits", icon:"🍌"},
+  {name:"Cooking Dinner", icon:"🍳"},
+  {name:"Laundry Washing", icon:"🧺"},
+  {name:"Dishwashing", icon:"🍽️"},
+  
+  {name:"Meditation Morning", icon:"🧘‍♂️"},
+  {name:"Meditation Night", icon:"🧘‍♀️"},
+  {name:"Stretch Night", icon:"🤸‍♂️"},
+  {name:"Stretch Morning", icon:"🤸‍♀️"},
+  {name:"Breakfast Cereal", icon:"🥣"},
+  {name:"Lunch Salad", icon:"🥗"},
+  {name:"Dinner Soup", icon:"🍲"},
+  {name:"Drink Water", icon:"💧"},
+  {name:"Warm Water Drink", icon:"☕"},
+    {name:"Vacuuming", icon:"🧹"},
+  {name:"Mopping", icon:"🪣"},
+  {name:"Gardening", icon:"🌿"},
+  {name:"Laundry Detergent", icon:"🧴"},
+  {name:"Walking Dog", icon:"🐕"},
+  {name:"Feeding Pet", icon:"🐾"},
+  {name:"Meditation Music", icon:"🎵"},
+  {name:"Stretching Morning", icon:"🤸‍♂️"},
+  {name:"Stretching Evening", icon:"🤸‍♀️"},
+  {name:"Tea Break", icon:"🍵"},
+  {name:"Coffee Break", icon:"☕"},
+  {name:"Snack Time", icon:"🍪"},
+{name:"Water Glass", icon:"🥛"},
+  {name:"Warm Water", icon:"☕"},
+  {name:"Medication", icon:"💊"},
+  {name:"Vitamin", icon:"🧴"},
+  {name:"Reading", icon:"📖"},
+  {name:"Writing", icon:"✍️"},
+  {name:"Email", icon:"📧"},
+ {name:"Clean Room", icon:"🧹"},
+  {name:"Dishwasher", icon:"🍽️"},
+  {name:"Walk", icon:"🚶‍♂️"},
+  {name:"Run", icon:"🏃‍♂️"},
+  {name:"Cycling", icon:"🚴‍♂️"},
+  {name:"Car Ride", icon:"🚗"},
+  {name:"Bus", icon:"🚌"},
+  {name:"Train", icon:"🚆"},
+  {name:"Work on PC", icon:"💻"},
+    {name:"Lunch", icon:"🍱"},
+  {name:"Dinner", icon:"🍽️"},
+   {name:"Singing", icon:"🎤"},
+  {name:"Dancing", icon:"💃"},
+  {name:"Painting", icon:"🎨"},
+  {name:"Photography", icon:"📸"},
+  {name:"Video", icon:"🎬"},
+  {name:"Social Media", icon:"📱"},
+  {name:"TV", icon:"📺"},
+  {name:"Gaming", icon:"🎮"},
+  {name:"Sleep", icon:"🛌"},
+  {name:"Nap", icon:"😴"},
+  {name:"Laundry Folding", icon:"🧺"},
+  {name:"Ironing", icon:"🧴"},
+  {name:"Shopping Online", icon:"🛍️"},
+  {name:"Car Maintenance", icon:"🚗"},
+  {name:"Bike Maintenance", icon:"🚲"},
+  {name:"Emails", icon:"📧"},
+  {name:"Project Planning", icon:"📝"},
+  {name:"Budgeting", icon:"💰"},
+ {name:"Cleaning Desk", icon:"🧽"},
+  {name:"Organizing Files", icon:"📂"},
+  {name:"Reading News", icon:"📰"},
+  {name:"Writing Journal", icon:"📓"},
+  {name:"Call Family", icon:"📞"},
+  {name:"Call Friend", icon:"📱"},
+  {name:"Shopping Mall", icon:"🏬"},
+  {name:"Doctor Appointment", icon:"🏥"},
+  {name:"Pharmacy", icon:"💊"},
+  {name:"Yoga Class", icon:"🧘‍♂️"},
+  {name:"Gym", icon:"🏋️‍♂️"},
+  {name:"Swimming", icon:"🏊‍♂️"},
+  {name:"Bike Ride", icon:"🚴‍♀️"},
+  {name:"Car Wash", icon:"🚗"},
+  {name:"Window Cleaning", icon:"🪟"},
+    {name:"Recycling", icon:"♻️"},
+  {name:"Music Practice", icon:"🎹"},
+  {name:"Guitar Practice", icon:"🎸"},
+  {name:"Piano Practice", icon:"🎹"},
+   {name:"Clean Table", icon:"🪑"},
+  {name:"Clean Floor", icon:"🧹"},
+  {name:"Study", icon:"📚"},
+  {name:"Homework", icon:"📝"},
+  {name:"Project Work", icon:"💻"},
+  {name:"Research", icon:"🔍"},
+  {name:"Emails Work", icon:"📧"},
+  {name:"Meeting Online", icon:"💻"},
+  {name:"Call Boss", icon:"📞"},
+  {name:"Team Call", icon:"📱"},
+    
+  {name:"Pet Care", icon:"🐶"},
+  {name:"Plant Care", icon:"🌱"},
+  {name:"Snack Chocolate", icon:"🍫"},
+  {name:"Pet Walking", icon:"🐕"},
+  {name:"Pet Feeding", icon:"🐾"},
+  {name:"Plant Watering", icon:"🌱"},
+  {name:"Plant Pruning", icon:"✂️"},
+  {name:"Car Exercise", icon:"🚗"},
+  {name:"Bike Exercise", icon:"🚲"},
+      {name:"Cleaning House", icon:"🧹"},
+  {name:"Cleaning Garden", icon:"🌿"},
+  {name:"Laundry Drying", icon:"🧺"},
+  {name:"Trash Sorting", icon:"🗑️"},
+  {name:"Recycle Sorting", icon:"♻️"},
+  {name:"Music Listening", icon:"🎧"},
+  {name:"Watch TV", icon:"📺"},
+  {name:"Play Game", icon:"🎮"},
+    {name:"Coffee", icon:"☕"},
+  {name:"Tea", icon:"🍵"},
+  {name:"Read Book", icon:"📖"},
+  {name:"Write Journal", icon:"✍️"},
+  {name:"Meditation Short", icon:"🧘"},
+  {name:"Meditation Long", icon:"🧘‍♂️"},
+    {name:"Wake Up Early", icon:"⏰"},
+*/
+
+];
+
+let disabledPresets = new Set();
+
+// Render left presets table (checked = invisible)
+function renderPresets(){
+  let tbody = document.getElementById("presetBody");
+  tbody.innerHTML = "";
+  presets.forEach((p,index)=>{
+    if(disabledPresets.has(index)) return; // skip if done
+    
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td>${p.icon}</td><td>${p.name}</td><td><input type="checkbox"></td>`;
+    
+    let checkbox = tr.querySelector("input");
+    checkbox.onclick = e=>{
+      e.stopPropagation();
+      disabledPresets.add(index); // mark done
+      renderPresets(); // disappear
+    };
+    
+    tr.onclick = e=>{
+      if(e.target.tagName!=="INPUT"){
+        document.getElementById("task").value = `${p.icon} ${p.name}`;
+      }
+    };
+    
+    tbody.appendChild(tr);
+  });
+}
+
+// Master enable all
+function toggleAllPresets(master){
+  if(master.checked){
+    disabledPresets.clear();
+    renderPresets();
+  }
+}
+
+// Work Tracker functions
+function startWork(){
+  if(startTime && !endTime){ alert("Finish current task first!"); return; }
+  startTime = new Date();
+  document.getElementById("startTime").innerText = "Start: "+startTime.toLocaleTimeString();
+}
+
+function doneWork(){
+  if(!startTime){ alert("Please start a task first!"); return; }
+  endTime = new Date();
+  let diff = endTime - startTime;
+  let mins = Math.floor(diff/60000);
+  let secs = Math.floor((diff%60000)/1000);
+  let total = `${mins} min ${secs} sec`;
+  
+  document.getElementById("endTime").innerText = "End: "+endTime.toLocaleTimeString();
+  document.getElementById("totalTime").innerText = "Total: "+total;
+  
+  records.unshift({ // unshift = last task goes on top
+    date: new Date().toISOString().split("T")[0],
+    start: startTime.toLocaleTimeString(),
+    task: document.getElementById("task").value,
+    end: endTime.toLocaleTimeString(),
+    total,
+    comment: document.getElementById("comment").value
+  });
+  
+  document.getElementById("task").value = "";
+  document.getElementById("comment").value = "";
+  document.getElementById("startTime").innerText = "";
+  document.getElementById("endTime").innerText = "";
+  document.getElementById("totalTime").innerText = "";
+  startTime=null; endTime=null;
+  
+  showReport();
+}
+
+function showReport(){
+  let tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+  records.forEach((r,i)=>{
+    tbody.innerHTML += `<tr>
+      <td>${r.date}</td>
+      <td>${r.start}</td>
+      <td>${r.task}</td>
+      <td>${r.end}</td>
+      <td>${r.total}</td>
+      <td>${r.comment}</td>
+      <td class="actions">
+        <button onclick="editRow(${i})">Edit</button>
+        <button onclick="deleteRow(${i})">Delete</button>
+      </td>
+    </tr>`;
+  });
+  document.getElementById("reportTable").style.display = records.length?"table":"none";
+}
+
+function editRow(i){
+  let r = records[i];
+  document.getElementById("task").value = r.task;
+  document.getElementById("comment").value = r.comment;
+  records.splice(i,1);
+  showReport();
+}
+
+function deleteRow(i){
+  records.splice(i,1);
+  showReport();
+}
+
+function saveToTxt(){
+  let text = records.map(r=>`${r.date}|${r.start}|${r.task}|${r.end}|${r.total}|${r.comment}`).join("\n");
+  let blob = new Blob([text], {type:"text/plain"});
+  let a=document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download="work_report.txt";
+  a.click();
+}
+
+function loadTxt(input){
+  let file=input.files[0];
+  if(!file) return;
+  let reader=new FileReader();
+  reader.onload=function(){
+    records = reader.result.trim().split("\n").map(line=>{
+      let [date,start,task,end,total,comment] = line.split("|");
+      return {date,start,task,end,total,comment};
+    });
+    showReport();
+  };
+  reader.readAsText(file);
+}
+
+// Initialize
+renderPresets();
+</script>
+</body>
+</html>
