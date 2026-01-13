@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabbed Calendar App</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        #leftPanel {
+            width: 380px;
+            background: #f6f6f6;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #rightPanel {
+            flex: 1;
+            padding: 20px;
+        }
+        .nameEntry {
+            border: 1px solid #ccc;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nameEntry input[type="text"] {
+            flex: 1;
+            margin-left: 8px;
+        }
+        .tabButtons button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .activeTab {
+            background: #007bff;
+            color: white;
+        }
+        .hiddenEntry {
+            display: none;
+        }
+        .attendance-row {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .attendance-row label {
+            margin-right: 6px;
+        }
+        .attendance-result {
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        /* Tab container */
+.tabButtons {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Tab buttons styled */
+.tabButtons button {
+    padding: 8px 18px;
+    font-size: 15px;
+    font-weight: bold;
+    border: 2px solid #007bff;
+    background-color: #ffffff;
+    color: #007bff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Hover state */
+.tabButtons button:hover {
+    background-color: #e6f0ff;
+    color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Active (selected) tab */
+.tabButtons button.activeTab {
+    background-color: #007bff;
+    color: #ffffff;
+    border-color: #0056b3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Optional: make the first letter caps */
+.tabButtons button::first-letter {
+    text-transform: uppercase;
+}
+
+    </style>
+</head>
+<body>
+
+    <!-- Left Panel -->
+    <div id="leftPanel">
+        <h3>Entries</h3>
+
+        <!-- Name input -->
+        <input type="text" id="nameInput" placeholder="Enter name">
+
+        <!-- Tab selection radios -->
+        <div>
+            <label><input type="radio" name="newTab" value="t1"> t1</label>
+            <label><input type="radio" name="newTab" value="t2"> t2</label>
+            <label><input type="radio" name="newTab" value="t3"> t3</label>
+        </div>
+
+        <button onclick="submitName()">SUBMIT NAME</button>
+
+        <br><br>
+
+        <!-- Save/Open file -->
+        <button onclick="saveToFile()">💾 Save File</button>
+        <input type="file" id="fileInput" style="display:none" onchange="openFromFile(event)">
+        <button onclick="document.getElementById('fileInput').click()">📂 Open File</button>
+
+        <br><br>
+
+        <!-- Tab buttons -->
+        <div class="tabButtons">
+            <button id="tab_t1" class="activeTab" onclick="switchTab('t1')">t1</button>
+            <button id="tab_t2" onclick="switchTab('t2')">t2</button>
+            <button id="tab_t3" onclick="switchTab('t3')">t3</button>
+        </div>
+
+        <!-- Entries container -->
+        <div id="entriesContainer"></div>
+    </div>
+
+    <!-- Right Panel -->
+    <div id="rightPanel">
+        <div id="calendarTitle">Select a name to see calendar</div>
+
+        <!-- Attendance counter -->
+        <div class="attendance-row">
+            <label>Attendance (✔ count / days):</label>
+            <input type="number" id="attendanceDays" min="0" value="0">
+            <span class="attendance-result" id="attendanceResult">0 / 0</span>
+        </div>
+
+        <div id="calendar"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script>
+
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: '75vh',
+            events: []
+        });
+        calendar.render();
+
+        let currentTab = 't1';
+        const calendarsData = {};
+
+        function switchTab(tab) {
+            currentTab = tab;
+
+            // highlight the active tab
+            document.querySelectorAll('.tabButtons button').forEach(btn => {
+                btn.classList.remove('activeTab');
+            });
+            document.getElementById('tab_' + tab).classList.add('activeTab');
+
+            // show only entries in this tab
+            refreshEntries();
+
+            // note: calendar stays as last opened
+        }
+
+        function refreshEntries() {
+            const container = document.getElementById('entriesContainer');
+            container.innerHTML = '';
+
+            for (let name in calendarsData) {
+                if (calendarsData[name].tab !== currentTab) continue;
+                createEntryDiv(name);
+            }
+        }
+
+        function createEntryDiv(name) {
+            const data = calendarsData[name];
+            const entryDiv = document.createElement('div');
+            entryDiv.className = "nameEntry";
+
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = name;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.checked = data.checkbox;
+
+            const textField = document.createElement("input");
+            textField.type = "text";
+            textField.value = data.text;
+
+            const calendarBtn = document.createElement('button');
+            calendarBtn.innerText = "📅";
+            calendarBtn.onclick = function() {
+                document.getElementById("calendarTitle").innerText = "Calendar for: " + name;
+                calendar.removeAllEvents();
+                data.events.forEach(ev => calendar.addEvent(ev));
+                document.getElementById("attendanceDays").value = data.attendanceDays || 0;
+                updateAttendanceDisplay(name);
+            };
+
+            const crossBtn = document.createElement('button');
+            crossBtn.innerText = "❌";
+            crossBtn.onclick = function() {
+                entryDiv.classList.add('hiddenEntry');
+                calendarsData[name].visible = false;
+            };
+
+            entryDiv.appendChild(nameSpan);
+            entryDiv.appendChild(checkbox);
+            entryDiv.appendChild(textField);
+            entryDiv.appendChild(calendarBtn);
+            entryDiv.appendChild(crossBtn);
+
+            document.getElementById('entriesContainer').appendChild(entryDiv);
+
+            function updateCalendarEvent() {
+                const today = new Date().toISOString().split('T')[0];
+                const text = textField.value.trim();
+                const eventId = "event_" + name + "_" + today;
+
+                calendarsData[name].checkbox = checkbox.checked;
+                calendarsData[name].text = text;
+
+                // remove old
+                const idx = data.events.findIndex(e => e.id === eventId);
+                if (idx > -1) data.events.splice(idx, 1);
+
+                if (checkbox.checked || text) {
+                    const title = (checkbox.checked ? "✔ " : "") + (text ? text : "");
+                    const event = {
+                        id: eventId,
+                        title: title.trim(),
+                        start: today,
+                        display: 'list-item',
+                        classNames: ['tick-event']
+                    };
+                    data.events.push(event);
+
+                    if (document.getElementById("calendarTitle").innerText === "Calendar for: " + name) {
+                        const existingCal = calendar.getEventById(eventId);
+                        if (existingCal) existingCal.setProp('title', title.trim());
+                        else calendar.addEvent(event);
+                    }
+                } else {
+                    const calEvent = calendar.getEventById(eventId);
+                    if (calEvent) calEvent.remove();
+                }
+                updateAttendanceDisplay(name);
+            }
+
+            checkbox.addEventListener("change", updateCalendarEvent);
+            textField.addEventListener("input", updateCalendarEvent);
+            updateCalendarEvent();
+        }
+
+        function submitName() {
+            const name = document.getElementById("nameInput").value.trim();
+            if (!name) {
+                alert("Please enter a name!");
+                return;
+            }
+
+            const selectedTab = document.querySelector('input[name="newTab"]:checked');
+            if (!selectedTab) {
+                alert("Please select a tab (t1, t2, or t3).");
+                return;
+            }
+
+            const tab = selectedTab.value;
+            if (calendarsData[name]) {
+                alert("Name already exists!");
+                return;
+            }
+
+            calendarsData[name] = {
+                tab: tab,
+                checkbox: false,
+                text: "",
+                events: [],
+                visible: true,
+                attendanceDays: 0
+            };
+
+            document.getElementById("nameInput").value = "";
+            refreshEntries();
+        }
+
+        function updateAttendanceDisplay(name) {
+            const daysInput = document.getElementById("attendanceDays");
+            const resultEl = document.getElementById("attendanceResult");
+            const events = calendarsData[name]?.events || [];
+
+            let tickCount = events.filter(ev => ev.title.startsWith("✔")).length;
+            const totalDays = parseInt(daysInput.value) || 0;
+            resultEl.innerText = tickCount + " / " + totalDays;
+
+            calendarsData[name].attendanceDays = totalDays;
+        }
+
+        document.getElementById("attendanceDays").addEventListener("input", function() {
+            const titleText = document.getElementById("calendarTitle").innerText;
+            if (titleText.startsWith("Calendar for: ")) {
+                const nm = titleText.replace("Calendar for: ", "");
+                updateAttendanceDisplay(nm);
+            }
+        });
+
+        function saveToFile() {
+            const dataStr = JSON.stringify(calendarsData, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "calendar_tabs_data.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function openFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    for (let nm in data) {
+                        calendarsData[nm] = data[nm];
+                    }
+                    refreshEntries();
+                } catch {
+                    alert("Invalid file format!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // initial show of t1
+        switchTab('t1');
+
+    </script>
+
+</body>
+</html>
